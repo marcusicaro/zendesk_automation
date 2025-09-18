@@ -8,6 +8,7 @@ import ContentAnalyzer from './services/contentAnalyzer.js';
 import AutoTagger from './services/autoTagger.js';
 import logger from './utils/logger.js';
 import errorHandler from './utils/errorHandler.js';
+import { sendSlackNotification } from './services/slackNotifier.js';
 import type { 
   AutomationConfig, 
   TicketFetchCriteria, 
@@ -322,6 +323,21 @@ Examples:
       }
 
       const report = await automation.run(criteria);
+
+      // Send Slack notification if configured
+      const slackToken = process.env.SLACK_TOKEN;
+      const slackChannel = process.env.SLACK_CHANNEL;
+      if (slackToken && slackChannel && report.summary.ticketsTagged > 0) {
+        const message = `Zendesk Automation: ${report.summary.ticketsTagged} tickets tagged.\n` +
+          `Duration: ${report.summary.duration}\n` +
+          `Success Rate: ${report.summary.successRate.toFixed(1)}%`;
+        try {
+          await sendSlackNotification({ token: slackToken, channel: slackChannel }, message);
+          console.log('✅ Slack notification sent.');
+        } catch (err) {
+          console.error('⚠️ Failed to send Slack notification:', err);
+        }
+      }
       
       console.log('\n📊 AUTOMATION SUMMARY');
       console.log('═'.repeat(50));
