@@ -25,26 +25,115 @@ This intelligent automation system combines **automatic ticket processing** with
 
 ## 🏗️ Architecture
 
-The system consists of several modular components built with TypeScript:
+This system is built with a **dual-purpose architecture** that combines automated ticket processing with real-time Slack bot capabilities:
+
+### 🎯 **Core Components**
+
+#### 1. **Ticket Automation Engine** (`src/index.ts`)
+- Main CLI interface and automation orchestration
+- Batch processing with configurable parameters
+- Comprehensive reporting and analytics
+
+#### 2. **Slack Bot Agent** (`src/slackAgentRunner.ts`)
+- Continuous polling for Slack messages
+- Real-time command processing
+- Interactive FAQ and ticket management
+
+#### 3. **Zendesk Integration Layer**
+- **API Client** (`src/services/zendeskClient.ts`) - Authentication and request handling
+- **Ticket Fetcher** (`src/services/ticketFetcher.ts`) - Ticket retrieval and filtering
+- **Auto Tagger** (`src/services/autoTagger.ts`) - Intelligent tagging system
+
+#### 4. **Slack Integration Layer**
+- **Slack Agent** (`src/services/slackAgent.ts`) - Command parsing and FAQ lookup
+- **Slack Notifier** (`src/services/slackNotifier.ts`) - Automated notifications
+
+#### 5. **Intelligence Layer**
+- **Content Analyzer** (`src/services/contentAnalyzer.ts`) - NLP-based analysis engine
+- **Category Detection** - Technical, billing, account management classification
+- **Sentiment Analysis** - Customer satisfaction assessment
+- **Priority Detection** - Urgency level identification
+
+### 📁 **Project Structure**
 
 ```
 src/
-├── index.ts                    # Main entry point and CLI interface (TypeScript)
+├── index.ts                    # 🚀 Main automation entry point & CLI
+├── slackAgentRunner.ts         # 🤖 Slack bot continuous polling agent
 ├── types/
-│   └── index.ts               # Comprehensive type definitions
+│   └── index.ts               # 📝 Comprehensive TypeScript definitions
 ├── services/
-│   ├── zendeskClient.ts       # Zendesk API client with authentication
-│   ├── ticketFetcher.ts       # Ticket retrieval and filtering logic
-│   ├── contentAnalyzer.ts     # NLP-based content analysis engine
-│   └── autoTagger.ts          # Automatic tagging and ticket updates
+│   ├── zendeskClient.ts       # 🔐 Zendesk API client & authentication
+│   ├── ticketFetcher.ts       # 📥 Ticket retrieval & filtering logic
+│   ├── contentAnalyzer.ts     # 🧠 NLP-based content analysis engine
+│   ├── autoTagger.ts          # 🏷️  Automatic tagging & ticket updates
+│   ├── slackAgent.ts          # 💬 Slack bot command processing & FAQ
+│   └── slackNotifier.ts       # 📢 Slack notification sender
 └── utils/
-    ├── logger.ts              # Comprehensive logging system
-    └── errorHandler.ts        # Error handling and retry mechanisms
+    ├── logger.ts              # 📊 Comprehensive logging system
+    └── errorHandler.ts        # 🛡️ Error handling & retry mechanisms
 
-dist/                          # Compiled JavaScript output
-create-demo-tickets.js         # Demo ticket creation utility
-find-subdomain.js             # Connection testing utility
+dist/                          # 📦 Compiled JavaScript output
+create-demo-tickets.js         # 🎫 Demo ticket creation utility
+find-subdomain.js             # 🔍 Connection testing utility
+.env                          # 🔒 Environment configuration
 ```
+
+### 🔄 **Data Flow Architecture**
+
+#### **Automation Pipeline**
+```mermaid
+graph LR
+    A[CLI Start] --> B[Fetch Tickets]
+    B --> C[Content Analysis]
+    C --> D[Generate Tags]
+    D --> E[Apply Tags]
+    E --> F[Slack Notification]
+    F --> G[Generate Report]
+```
+
+#### **Slack Bot Pipeline**
+```mermaid
+graph LR
+    H[Slack Message] --> I[Command Parser]
+    I --> J{Command Type}
+    J -->|FAQ| K[Zendesk Help Center API]
+    J -->|Create| L[Zendesk Tickets API]
+    J -->|Update| M[Zendesk Tickets API]
+    K --> N[Reply to Slack]
+    L --> N
+    M --> N
+```
+
+### 🔗 **Integration Points**
+
+#### **External APIs**
+- **Zendesk API v2** - Ticket management and Help Center search
+- **Slack Web API** - Bot interactions and notifications
+
+#### **Internal Communication**
+- **Shared Zendesk Client** - Common authentication and rate limiting
+- **Unified Logging** - Centralized logging across all components
+- **Environment Configuration** - Single `.env` for all services
+
+### ⚡ **Runtime Modes**
+
+#### **Automation Mode** (`npm start`)
+- Batch processing of existing tickets
+- Intelligent tagging and categorization
+- Slack notifications for processed tickets
+- Comprehensive reporting
+
+#### **Bot Mode** (`node dist/slackAgentRunner.js`)
+- Continuous Slack channel monitoring
+- Real-time FAQ responses
+- Interactive ticket creation and management
+- Thread-based replies for organization
+
+#### **Combined Mode** (Both running)
+- Full-featured customer support automation
+- Proactive ticket processing + reactive bot support
+- Seamless integration between automated and manual workflows
 
 ## 🛠️ Setup Instructions
 
