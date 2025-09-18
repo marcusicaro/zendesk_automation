@@ -46,8 +46,8 @@ find-subdomain.js             # Connection testing utility
 
 1. **Clone or download the project**:
    ```bash
-   git clone <your-repo> # or extract the provided files
-   cd zendesk_challenge
+   git clone https://github.com/marcusicaro/zendesk_automation.git
+   cd zendesk_automation
    ```
 
 2. **Install dependencies**:
