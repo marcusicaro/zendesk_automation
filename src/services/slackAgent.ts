@@ -26,22 +26,84 @@ async function lookupFAQ(question: string): Promise<string> {
       return 'Zendesk configuration missing. Please check your environment variables.';
     }
 
+    console.log(`🔍 Searching Help Center for: "${question}"`);
+    console.log(`📡 API URL: https://${subdomain}.zendesk.com/api/v2/help_center/articles/search.json`);
+
     // Try to search Help Center articles
     const searchUrl = `https://${subdomain}.zendesk.com/api/v2/help_center/articles/search.json`;
     const response = await axios.get(searchUrl, {
-      params: { query: question },
-      auth: { username: `${email}/token`, password: token }
+      params: { 
+        query: question,
+        per_page: 5  // Get more results
+      },
+      auth: { username: `${email}/token`, password: token },
+      timeout: 10000  // 10 second timeout
+    });
+
+    console.log(`📊 Help Center API Response:`, {
+      status: response.status,
+      resultsCount: response.data.results?.length || 0,
+      results: response.data.results?.map((r: any) => ({ id: r.id, title: r.title })) || []
     });
 
     if (response.data.results && response.data.results.length > 0) {
       const article = response.data.results[0];
-      return `**${article.title}**\n${article.body.substring(0, 300)}...\n\nRead more: ${article.html_url}`;
+      console.log(`✅ Found article: ${article.title}`);
+      
+      // Clean up the body text (remove HTML tags)
+      let bodyText = article.body || '';
+      bodyText = bodyText.replace(/<[^>]*>/g, ''); // Remove HTML tags
+      bodyText = bodyText.replace(/\s+/g, ' ').trim(); // Normalize whitespace
+      
+      const preview = bodyText.length > 300 ? bodyText.substring(0, 300) + '...' : bodyText;
+      
+      return `**${article.title}**\n\n${preview}\n\n🔗 Read more: ${article.html_url}`;
     }
 
+    console.log('❌ No articles found in Help Center, trying fallback search...');
+    
+    // Try a different search approach - search all articles and filter
+    const allArticlesUrl = `https://${subdomain}.zendesk.com/api/v2/help_center/articles.json`;
+    const allArticlesResponse = await axios.get(allArticlesUrl, {
+      params: { per_page: 100 },
+      auth: { username: `${email}/token`, password: token },
+      timeout: 10000
+    });
+
+    if (allArticlesResponse.data.articles && allArticlesResponse.data.articles.length > 0) {
+      console.log(`📚 Found ${allArticlesResponse.data.articles.length} total articles, searching manually...`);
+      
+      const questionLower = question.toLowerCase();
+      const matchingArticle = allArticlesResponse.data.articles.find((article: any) => 
+        article.title.toLowerCase().includes(questionLower) ||
+        questionLower.includes(article.title.toLowerCase()) ||
+        (article.body && article.body.toLowerCase().includes(questionLower))
+      );
+
+      if (matchingArticle) {
+        console.log(`✅ Found matching article: ${matchingArticle.title}`);
+        
+        let bodyText = matchingArticle.body || '';
+        bodyText = bodyText.replace(/<[^>]*>/g, '');
+        bodyText = bodyText.replace(/\s+/g, ' ').trim();
+        
+        const preview = bodyText.length > 300 ? bodyText.substring(0, 300) + '...' : bodyText;
+        
+        return `**${matchingArticle.title}**\n\n${preview}\n\n🔗 Read more: ${matchingArticle.html_url}`;
+      }
+    }
+
+    console.log('❌ No matching articles found, using mock FAQs');
     // If no articles found, fall back to mock FAQs
     return getMockFAQAnswer(question);
   } catch (error) {
-    console.log('Help Center API not available, using mock FAQs:', (error as any).response?.status);
+    console.error('❌ Help Center API error:', {
+      message: (error as any).message,
+      status: (error as any).response?.status,
+      statusText: (error as any).response?.statusText,
+      data: (error as any).response?.data
+    });
+    
     // If Help Center API fails, fall back to mock FAQs
     return getMockFAQAnswer(question);
   }
@@ -50,6 +112,23 @@ async function lookupFAQ(question: string): Promise<string> {
 // Mock FAQ answers for when Help Center API is not available
 function getMockFAQAnswer(question: string): string {
   const faqs = [
+    // Real article topics from your Zendesk
+    { keywords: ['distributed', 'systems', 'management'], a: '🏗️ **Best Practices for Distributed Systems Management**\nKey practices include:\n• Implement proper monitoring and observability\n• Use circuit breakers and retry patterns\n• Design for failure and graceful degradation\n• Maintain consistent configuration management\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['global', 'clients', 'support'], a: '🌍 **Strategies for Supporting Global Clients**\nBest strategies include:\n• 24/7 follow-the-sun support model\n• Localized documentation and communication\n• Cultural awareness training for support teams\n• Multi-timezone escalation procedures\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['security', 'certification', 'compliance'], a: '🔒 **Security Certifications and Compliance**\nImportant considerations:\n• SOC 2 Type II compliance\n• GDPR and data privacy requirements\n• Industry-specific certifications (HIPAA, PCI DSS)\n• Regular security audits and assessments\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['customer', 'data', 'safety', 'zendesk'], a: '🛡️ **Ensuring Customer Data Safety in Zendesk**\nKey safety measures:\n• End-to-end encryption of sensitive data\n• Role-based access controls\n• Regular data backup and recovery testing\n• Compliance with international data protection laws\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['dashboard', 'custom', 'sharing'], a: '📊 **Building and Sharing Custom Dashboards**\nBest practices:\n• Focus on actionable metrics\n• Use clear visualizations and consistent formatting\n• Set up automated reports for stakeholders\n• Include drill-down capabilities for detailed analysis\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['data', 'insights', 'clients'], a: '📈 **Leveraging Data Insights Across Clients**\nStrategies include:\n• Implement unified analytics platform\n• Create client-specific dashboards\n• Use predictive analytics for proactive support\n• Establish data sharing agreements and protocols\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['customer', 'satisfaction', 'metrics', 'monitoring'], a: '📋 **Monitoring Key Customer Satisfaction Metrics**\nEssential metrics:\n• CSAT (Customer Satisfaction Score)\n• NPS (Net Promoter Score)\n• First Response Time and Resolution Time\n• Ticket volume trends and escalation rates\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['reports', 'zendesk', 'customize'], a: '📊 **How to Customize Reports in Zendesk**\nCustomization steps:\n• Access Zendesk Explore or Analytics\n• Select appropriate data sources\n• Configure metrics and filters\n• Schedule automated report delivery\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['workflow', 'automation', 'efficiency'], a: '⚡ **Automating Workflows to Improve Efficiency**\nAutomation strategies:\n• Set up trigger-based actions\n• Create workflow templates for common processes\n• Implement approval workflows for complex cases\n• Use API integrations for cross-platform automation\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['ticket', 'automation', 'zendesk', 'best', 'practices'], a: '🎫 **Best Practices for Ticket Automation in Zendesk**\nKey practices:\n• Auto-assign tickets based on skills and workload\n• Set up escalation rules for SLA compliance\n• Use macros for common responses\n• Implement smart routing based on content analysis\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['api', 'authentication', 'permissions'], a: '🔐 **API Authentication and Permissions**\nAuthentication methods:\n• OAuth 2.0 for secure third-party access\n• API tokens for server-to-server communication\n• Role-based permission management\n• Rate limiting and security monitoring\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['crm', 'integration', 'systems'], a: '🔗 **Connecting to Popular CRM Systems**\nIntegration approaches:\n• Native connectors for Salesforce, HubSpot\n• API-based custom integrations\n• Data synchronization strategies\n• Webhook configuration for real-time updates\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['integration', 'maintenance', 'best', 'practices'], a: '🔧 **Best Practices for Maintaining Integrations**\nMaintenance strategies:\n• Regular health checks and monitoring\n• Version control for integration configurations\n• Error handling and recovery procedures\n• Documentation and change management\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    { keywords: ['saas', 'integrate', 'zendesk'], a: '💼 **How to Integrate Your SaaS with Zendesk**\nIntegration steps:\n• Define integration requirements and scope\n• Choose appropriate Zendesk APIs\n• Implement authentication and security\n• Test thoroughly and monitor performance\n\n*Note: This is a mock response. Check your Help Center for the full article.*' },
+    
+    // Original FAQs
     { keywords: ['reset', 'password', 'forgot'], a: '🔐 **Password Reset**\nTo reset your password:\n1. Go to the login page\n2. Click "Forgot password"\n3. Enter your email address\n4. Check your email for reset instructions' },
     { keywords: ['billing', 'payment', 'invoice', 'charge'], a: '💳 **Billing Information**\nFor billing questions:\n• Visit the Billing section in your account settings\n• Contact billing support at billing@company.com\n• View your invoices in the dashboard under "Billing History"' },
     { keywords: ['api', 'limits', 'rate', 'quota'], a: '🔧 **API Rate Limits**\nZendesk API rate limits:\n• 400 requests per minute for most endpoints\n• 10 requests per minute for search endpoints\n• More info: https://developer.zendesk.com/api-rate-limits' },

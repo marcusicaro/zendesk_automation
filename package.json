@@ -7,6 +7,7 @@
   "scripts": {
     "start": "npm run build && node dist/index.js",
     "start:ts": "node --loader ts-node/esm src/index.ts",
+    "start:slack": "npm run build && node dist/slackAgentRunner.js",
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "npm run build && node dist/index.js --test",
